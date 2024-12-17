@@ -1,5 +1,77 @@
 use super::div::Div;
 
+#[derive(Debug, Clone, Copy)]
+enum Offset {
+    Plus(u8),
+}
+
+impl Offset {
+    fn from_i8(value: i8) -> Self {
+        if value < 0 {
+            Offset::Plus(value.abs() as u8)
+        } else {
+            Offset::Plus(value as u8)
+        }
+    }
+}
+
+impl Default for Offset {
+    fn default() -> Self {
+        Offset::Plus(0)
+    }
+}
+
+#[derive(Debug)]
+pub struct Poke {
+    pub hp: u8,
+    pub atk: u8,
+    pub def: u8,
+    pub spe: u8,
+    pub spc: u8,
+    pub is_shiny: bool,
+}
+
+impl Poke {
+    fn new(atkdef: u8, spespc: u8) -> Self {
+        let atk = atkdef >> 4;
+        let def = atkdef & 0xf;
+        let spe = spespc >> 4;
+        let spc = spespc & 0xf;
+        let hp = ((atk & 1) * 8) + ((def & 1) * 4) + ((spe & 1) * 2) + (spc & 1);
+        let is_shiny = spespc == 0xAA
+            && (atkdef == 0x2A
+                || atkdef == 0x3A
+                || atkdef == 0x6A
+                || atkdef == 0x7A
+                || atkdef == 0xAA
+                || atkdef == 0xBA
+                || atkdef == 0xEA
+                || atkdef == 0xFA);
+
+        Self {
+            hp,
+            atk,
+            def,
+            spe,
+            spc,
+            is_shiny,
+        }
+    }
+}
+
+fn advance_rng(r_add: u8, r_sub: u8, a_div: u8, s_div: u8) -> [u8; 2] {
+    let (r_add, add_overload) = r_add.overflowing_add(a_div);
+    let r_sub = r_sub.wrapping_sub(s_div.wrapping_add(add_overload as u8));
+    [r_add, r_sub]
+}
+
+fn apply_offset(value: u8, offset: Offset) -> u8 {
+    match offset {
+        Offset::Plus(offset) => value.wrapping_add(offset),
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Rng {
     r_add: u8,
     r_sub: u8,
@@ -19,16 +91,26 @@ impl Rng {
         }
     }
 
-    pub fn next(&mut self) -> [u8; 2] {
+    pub fn state(&self) -> u16 {
+        (self.r_add as u16) << 8 | self.r_sub as u16
+    }
+
+    fn next_with_div_offset(&mut self, div_offset: Offset) -> [u8; 2] {
         self.add_div.next();
         self.sub_div.next();
 
-        let (r_add, add_overload) = self.r_add.overflowing_add(self.add_div.value());
-        self.r_add = r_add;
-        let sub_div = self.sub_div.value().wrapping_add(add_overload as u8);
-        self.r_sub = self.r_sub.wrapping_sub(sub_div);
+        [self.r_add, self.r_sub] = advance_rng(
+            self.r_add,
+            self.r_sub,
+            apply_offset(self.add_div.value(), div_offset),
+            apply_offset(self.sub_div.value(), div_offset),
+        );
 
         [self.r_add, self.r_sub]
+    }
+
+    pub fn next(&mut self) -> [u8; 2] {
+        self.next_with_div_offset(Offset::default())
     }
 
     pub fn next_u16(&mut self) -> u16 {
@@ -38,5 +120,109 @@ impl Rng {
 
     pub fn div(&self) -> u8 {
         self.add_div.value()
+    }
+
+    fn poke_rands(
+        &self,
+        a_div_1_offset: Offset,
+        s_div_1_offset: Offset,
+        a_div_2_offset: Offset,
+        s_div_2_offset: Offset,
+    ) -> [[u8; 2]; 2] {
+        let mut poke_rng = self.clone();
+        // Advance once for the A press
+        poke_rng.next();
+        let r_add_0 = poke_rng.r_add;
+        let r_sub_0 = poke_rng.r_sub;
+        // Get the normal rand[1] values
+        poke_rng.next();
+        let normal_a_div_1 = poke_rng.add_div.value();
+        let normal_s_div_1 = poke_rng.sub_div.value();
+
+        let poke_a_div_1 = normal_a_div_1.wrapping_mul(2).wrapping_add(9);
+        let poke_a_div_1 = apply_offset(poke_a_div_1, a_div_1_offset);
+
+        let poke_s_div_1 = normal_s_div_1.wrapping_mul(2).wrapping_add(9);
+        let poke_s_div_1 = apply_offset(poke_s_div_1, s_div_1_offset);
+
+        let poke_rand_1 = advance_rng(r_add_0, r_sub_0, poke_a_div_1, poke_s_div_1);
+
+        let poke_s_div_2 = poke_s_div_1.wrapping_sub(normal_s_div_1);
+        // TODO: Fix this
+        let poke_a_div_2 = poke_s_div_2;
+
+        let poke_s_div_2 = apply_offset(poke_s_div_2, s_div_2_offset);
+        let poke_a_div_2 = apply_offset(poke_a_div_2, a_div_2_offset);
+
+        let poke_rand_2 = advance_rng(poke_rand_1[0], poke_rand_1[1], poke_a_div_2, poke_s_div_2);
+
+        [poke_rand_1, poke_rand_2]
+    }
+
+    fn potential_pokes(&self) -> Vec<Poke> {
+        let mut result = Vec::new();
+
+        for a_div_1_offset in -1..=1 {
+            for s_div_1_offset in -1..=1 {
+                for a_div_2_offset in -1..=1 {
+                    for s_div_2_offset in -1..=1 {
+                        let [[_, atkdef], [_, spespc]] = self.poke_rands(
+                            Offset::from_i8(a_div_1_offset),
+                            Offset::from_i8(s_div_1_offset),
+                            Offset::from_i8(a_div_2_offset),
+                            Offset::from_i8(s_div_2_offset),
+                        );
+
+                        let poke = Poke::new(atkdef, spespc);
+                        result.push(poke);
+                    }
+                }
+            }
+        }
+
+        result
+    }
+
+    pub fn is_good_poke(&self) -> (bool, bool) {
+        let pokes = self.potential_pokes();
+        let is_shiny = pokes.iter().any(|poke| poke.is_shiny);
+        let is_max_dvs = pokes.iter().any(|poke| {
+            poke.hp == 15 && poke.atk == 15 && poke.def == 15 && poke.spe == 15 && poke.spc == 15
+        });
+
+        (is_shiny, is_max_dvs)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn advances_the_rng() {
+        let state = 0x9fe3;
+        let a_div = Div::new(2180, 0x78, vec![0x85, 0x86, 0x1dd8, 0x1dd9, 0x2332, 0x2333]);
+        let s_div = Div::new(
+            2171,
+            0x78,
+            vec![0x345, 0x346, 0x2098, 0x2099, 0x25f2, 0x25f3],
+        );
+        let mut rng = Rng::new(state, a_div, s_div);
+        let expected: Vec<u16> = vec![
+            0x2958, 0xc5bb, 0x740b, 0x3549, 0x0874, 0xee8e, 0xe695, 0xf08b, 0x0d6d, 0x3c3e, 0x7dfd,
+            0xd1a9, 0x3742, 0xafca, 0x393e, 0xd6a1, 0x85f1, 0x462e, 0x1a59, 0x0072, 0xf879, 0x036d,
+            0x2050, 0x4f21, 0x91df, 0xe58b, 0x4b24, 0xc4ab, 0x4f1f, 0xec82, 0x9bd1, 0x5d0e, 0x3139,
+            0x1751, 0x1057, 0x1b4c, 0x382e, 0x68fe, 0xaabc, 0xfe68, 0x6500, 0xde87, 0x69fb, 0x075c,
+            0xb7ac, 0x79e9, 0x4d13, 0x342b, 0x2d31, 0x3825, 0x5607, 0x86d7, 0xc894, 0x1d3e, 0x84d7,
+            0xfd5e, 0x89d1, 0x2732, 0xd782, 0x9abe, 0x6fe8, 0x5600, 0x4f05, 0x5bf9, 0x79db, 0xa9aa,
+            0xec67, 0x4111, 0xa8a9, 0x222e, 0xaea2, 0x4c03, 0xfd52, 0xc08e, 0x95b8, 0x7dcf, 0x77d4,
+            0x83c8, 0xa1a9, 0xd278, 0x1534, 0x6ade, 0xd276, 0x4cfb, 0xd86e, 0x77ce, 0x281c, 0xeb59,
+            0xc182, 0xa999, 0xa39e, 0xb091, 0xcf72, 0x0040, 0x43fc, 0x99a6, 0x013d, 0x7bc2, 0x0834,
+            0xa795,
+        ];
+
+        for item in expected {
+            assert_eq!(rng.next_u16(), item as u16);
+        }
     }
 }

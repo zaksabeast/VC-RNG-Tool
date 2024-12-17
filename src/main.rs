@@ -19,8 +19,9 @@ fn parse_usize_hex(input: &str) -> Result<usize, ParseIntError> {
 }
 
 fn limit_index_range(input: &str) -> Result<usize, String> {
-    let input = usize::from_str_radix(input, 10).map_err(|e| e.to_string())?;
-    if input < 9 || input > 15680 {
+    let input = input.parse::<usize>().map_err(|e| e.to_string())?;
+    // Laziness
+    if !(9..=15680).contains(&input) {
         Err("Index must be between 9 and 15680".to_string())
     } else {
         Ok(input)
@@ -32,6 +33,8 @@ fn limit_index_range(input: &str) -> Result<usize, String> {
 /// Reference 3ds VC Rng Tool.
 /// Currently only works with Crystal.
 struct Cli {
+    #[command(subcommand)]
+    command: Command,
     #[arg(short, long, value_parser = parse_u8_hex)]
     div: u8,
     #[arg(short, long, value_parser = limit_index_range)]
@@ -44,8 +47,15 @@ struct Cli {
     start_advance: usize,
     #[arg(short = 'E', long)]
     end_advance: usize,
-    #[arg(short, long)]
-    log_count: usize,
+}
+
+#[derive(Parser)]
+enum Command {
+    Rng {
+        #[arg(short, long)]
+        log_count: usize,
+    },
+    Starter,
 }
 
 fn main() {
@@ -63,16 +73,31 @@ fn main() {
 
     let mut rng = Rng::new(opts.state, add_div, sub_div);
 
-    let log_start = opts.end_advance.saturating_sub(opts.log_count);
-    for advance in opts.start_advance..opts.end_advance {
-        let rand = rng.next_u16();
-        if advance >= log_start {
-            println!(
-                "adv {}, add_div {:02x}, rand {:04x}",
-                advance + 1,
-                rng.div(),
-                rand
-            );
+    match opts.command {
+        Command::Rng { log_count } => {
+            let log_start = opts.end_advance.saturating_sub(log_count);
+            for advance in (opts.start_advance + 1)..=opts.end_advance {
+                let rand = rng.next_u16();
+                if advance >= log_start {
+                    println!(
+                        "adv {}, add_div {:02x}, rand {:04x}",
+                        advance,
+                        rng.div(),
+                        rand
+                    );
+                }
+            }
         }
-    }
+        Command::Starter => {
+            for advance in opts.start_advance..=opts.end_advance {
+                match rng.is_good_poke() {
+                    (true, false) => println!("adv {}, state {:04x}, shiny", advance, rng.state()),
+                    (false, true) => println!("adv {}, state {:04x}, max dv", advance, rng.state()),
+                    // Not possible to have shiny and max dv
+                    _ => {}
+                }
+                rng.next();
+            }
+        }
+    };
 }
