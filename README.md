@@ -29,6 +29,6 @@ cargo run -- -d 13 -i 15127 -a 1728,1729,1c82,1c83,39d5,39d6 -s cc8f -S 388604 -
 
 Advancements (`-a`) will be a set of 6 numbers. Every other number should be 1 more than the previous number. If you have any set of numbers besides 6 after 16384 advances, reset Reader's DIV tracker.
 
-There's always 2 pairs that start with an even number, and one pair that starts with an odd number. The even pairs are always 1370 apart. Any even/odd pair is 7507 apart.
+There's always 2 pairs that end with an even number, and one pair that ends with an odd number. The even pairs are always 1370 apart. Any even/odd pair is 7507 apart.
 
 In the example above, 0x39d5-0x1c82=7507 and 0x1c82-0x1728=1370 (0x1728-0x39d5)%0x4000=7507.

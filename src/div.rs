@@ -4,30 +4,38 @@ const DIV_INCREMENTS: [u8; 16] = [
     0x12, 0x12, 0x12, 0x13, 0x12, 0x12, 0x13, 0x12, 0x12, 0x13, 0x12, 0x12, 0x13, 0x12, 0x12, 0x13,
 ];
 
+const ADJUSTED_INDEXES: [usize; 6] = [0x8, 0x9, 0x562, 0x563, 0x22b5, 0x22b6];
+
+fn div_increment(index: usize) -> u8 {
+    let is_adjusted = ADJUSTED_INDEXES.iter().any(|&i| i == index);
+    let expected_increment = DIV_INCREMENTS[index % 16];
+    match (is_adjusted, expected_increment) {
+        (true, 0x12) => 0x13,
+        (true, 0x13) => 0x12,
+        _ => expected_increment,
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Div {
     index: usize,
     value: u8,
-    adjusted_indexes: Vec<usize>,
 }
 
 impl Div {
-    pub fn new(index: usize, value: u8, adjusted_indexes: Vec<usize>) -> Self {
-        Self {
-            index,
-            value,
-            adjusted_indexes,
-        }
+    pub fn new_pair(add_index: usize, add_value: u8, sub_value: u8) -> (Self, Self) {
+        let sub_index = add_index.wrapping_sub(713) % 0x4000;
+        let adiv = Self::new(add_index, add_value);
+        let sdiv = Self::new(sub_index, sub_value);
+        (adiv, sdiv)
+    }
+
+    pub fn new(index: usize, value: u8) -> Self {
+        Self { index, value }
     }
 
     pub fn current_increment(&self) -> u8 {
-        let is_adjusted = self.adjusted_indexes.iter().any(|&i| i == self.index);
-        let expected_increment = DIV_INCREMENTS[self.index % 16];
-        match (is_adjusted, expected_increment) {
-            (true, 0x12) => 0x13,
-            (true, 0x13) => 0x12,
-            _ => expected_increment,
-        }
+        div_increment(self.index)
     }
 
     pub fn next(&mut self) {
@@ -54,5 +62,9 @@ impl Div {
 
     pub fn increment_value(&mut self, value: u8) {
         self.value = self.value.wrapping_add(value);
+    }
+
+    pub fn decrement_value(&mut self, value: u8) {
+        self.value = self.value.wrapping_sub(value);
     }
 }

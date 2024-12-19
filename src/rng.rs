@@ -8,7 +8,7 @@ enum Offset {
 impl Offset {
     fn from_i8(value: i8) -> Self {
         if value < 0 {
-            Offset::Plus(value.abs() as u8)
+            Offset::Plus(value.unsigned_abs())
         } else {
             Offset::Plus(value as u8)
         }
@@ -118,8 +118,20 @@ impl Rng {
         (r_add as u16) << 8 | r_sub as u16
     }
 
-    pub fn div(&self) -> u8 {
+    pub fn adiv(&self) -> u8 {
         self.add_div.value()
+    }
+
+    pub fn sdiv(&self) -> u8 {
+        self.sub_div.value()
+    }
+
+    pub fn ainc(&self) -> u8 {
+        self.add_div.current_increment()
+    }
+
+    pub fn sinc(&self) -> u8 {
+        self.sub_div.current_increment()
     }
 
     fn poke_rands(
@@ -201,12 +213,7 @@ mod test {
     #[test]
     fn advances_the_rng() {
         let state = 0x9fe3;
-        let a_div = Div::new(2180, 0x78, vec![0x85, 0x86, 0x1dd8, 0x1dd9, 0x2332, 0x2333]);
-        let s_div = Div::new(
-            2171,
-            0x78,
-            vec![0x345, 0x346, 0x2098, 0x2099, 0x25f2, 0x25f3],
-        );
+        let (a_div, s_div) = Div::new_pair(468, 0x78, 0x78);
         let mut rng = Rng::new(state, a_div, s_div);
         let expected: Vec<u16> = vec![
             0x2958, 0xc5bb, 0x740b, 0x3549, 0x0874, 0xee8e, 0xe695, 0xf08b, 0x0d6d, 0x3c3e, 0x7dfd,
@@ -221,8 +228,8 @@ mod test {
             0xa795,
         ];
 
-        for item in expected {
-            assert_eq!(rng.next_u16(), item as u16);
+        for (index, item) in expected.iter().enumerate() {
+            assert_eq!(rng.next_u16(), *item, "Failed at {}", index);
         }
     }
 }
