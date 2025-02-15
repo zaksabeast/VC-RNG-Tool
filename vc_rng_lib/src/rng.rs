@@ -71,6 +71,13 @@ fn apply_offset(value: u8, offset: Offset) -> u8 {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SpecialTrait {
+    None,
+    Shiny,
+    MaxDv,
+}
+
 #[derive(Debug, Clone)]
 pub struct Rng {
     r_add: u8,
@@ -80,6 +87,10 @@ pub struct Rng {
 }
 
 impl Rng {
+    pub fn new_from_div(index: usize, state: u16, div: u16) -> Self {
+        let (add_div, sub_div) = Div::new_pair(index, (div >> 8) as u8, div as u8);
+        Rng::new(state, add_div, sub_div)
+    }
     pub fn new(state: u16, add_div: Div, sub_div: Div) -> Self {
         let r_add = (state >> 8) as u8;
         let r_sub = state as u8;
@@ -126,14 +137,6 @@ impl Rng {
         self.sub_div.value()
     }
 
-    pub fn ainc(&self) -> u8 {
-        self.add_div.current_increment()
-    }
-
-    pub fn sinc(&self) -> u8 {
-        self.sub_div.current_increment()
-    }
-
     fn poke_rands(
         &self,
         a_div_1_offset: Offset,
@@ -151,10 +154,10 @@ impl Rng {
         let normal_a_div_1 = poke_rng.add_div.value();
         let normal_s_div_1 = poke_rng.sub_div.value();
 
-        let poke_a_div_1 = normal_a_div_1.wrapping_mul(2).wrapping_add(9);
+        let poke_a_div_1 = normal_a_div_1.wrapping_mul(2).wrapping_add(10);
         let poke_a_div_1 = apply_offset(poke_a_div_1, a_div_1_offset);
 
-        let poke_s_div_1 = normal_s_div_1.wrapping_mul(2).wrapping_add(9);
+        let poke_s_div_1 = normal_s_div_1.wrapping_mul(2).wrapping_add(10);
         let poke_s_div_1 = apply_offset(poke_s_div_1, s_div_1_offset);
 
         let poke_rand_1 = advance_rng(r_add_0, r_sub_0, poke_a_div_1, poke_s_div_1);
@@ -195,14 +198,22 @@ impl Rng {
         result
     }
 
-    pub fn is_good_poke(&self) -> (bool, bool) {
+    pub fn possible_special_trait(&self) -> SpecialTrait {
         let pokes = self.potential_pokes();
         let is_shiny = pokes.iter().any(|poke| poke.is_shiny);
+        if is_shiny {
+            return SpecialTrait::Shiny;
+        }
+
         let is_max_dvs = pokes.iter().any(|poke| {
             poke.hp == 15 && poke.atk == 15 && poke.def == 15 && poke.spe == 15 && poke.spc == 15
         });
 
-        (is_shiny, is_max_dvs)
+        if is_max_dvs {
+            return SpecialTrait::MaxDv;
+        }
+
+        SpecialTrait::None
     }
 }
 
