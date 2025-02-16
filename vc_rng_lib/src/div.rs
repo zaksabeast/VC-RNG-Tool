@@ -23,13 +23,6 @@ pub struct Div {
 }
 
 impl Div {
-    pub fn new_pair(add_index: usize, add_value: u8, sub_value: u8) -> (Self, Self) {
-        let sub_index = add_index.wrapping_sub(713) % 0x4000;
-        let adiv = Self::new(add_index, add_value);
-        let sdiv = Self::new(sub_index, sub_value);
-        (adiv, sdiv)
-    }
-
     pub fn new(index: usize, value: u8) -> Self {
         Self { index, value }
     }

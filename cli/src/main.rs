@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::num::ParseIntError;
-use vc_rng_lib::{Filter, Options, generate_starters, rng::Rng};
+use vc_rng_lib::{div::Div, generate_starters, rng::Rng, Filter, Options};
 
 fn parse_u16_hex(input: &str) -> Result<u16, ParseIntError> {
     u16::from_str_radix(input, 16)
@@ -24,9 +24,13 @@ struct Cli {
     #[command(subcommand)]
     command: Command,
     #[arg(short, long, value_parser = parse_u16_hex)]
-    div: u16,
+    adiv: u8,
+    #[arg(short, long, value_parser = parse_u16_hex)]
+    sdiv: u8,
     #[arg(short, long, value_parser = limit_index_range)]
-    index: usize,
+    adiv_index: usize,
+    #[arg(short, long, value_parser = limit_index_range)]
+    sdiv_index: usize,
     #[arg(short, long, value_parser = parse_u16_hex)]
     state: u16,
     #[arg(short = 'S', long)]
@@ -50,7 +54,9 @@ fn main() {
 
     match opts.command {
         Command::Rng { log_count } => {
-            let mut rng = Rng::new_from_div(opts.index, opts.state, opts.div);
+            let adiv = Div::new(opts.adiv_index, opts.adiv);
+            let sdiv = Div::new(opts.sdiv_index, opts.sdiv);
+            let mut rng = Rng::new(opts.state, adiv, sdiv);
             let log_start = end_advance.saturating_sub(log_count);
             for advance in (opts.start_advance + 1)..=end_advance {
                 let rand = rng.next_u16();
@@ -67,8 +73,10 @@ fn main() {
         }
         Command::Starter => {
             let results = generate_starters(Options::new(
-                opts.div,
-                opts.index,
+                opts.adiv,
+                opts.sdiv,
+                opts.adiv_index,
+                opts.sdiv_index,
                 opts.state,
                 opts.start_advance,
                 opts.start_advance + opts.advance_count,

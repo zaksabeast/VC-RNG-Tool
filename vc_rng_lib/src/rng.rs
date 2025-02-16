@@ -87,10 +87,6 @@ pub struct Rng {
 }
 
 impl Rng {
-    pub fn new_from_div(index: usize, state: u16, div: u16) -> Self {
-        let (add_div, sub_div) = Div::new_pair(index, (div >> 8) as u8, div as u8);
-        Rng::new(state, add_div, sub_div)
-    }
     pub fn new(state: u16, add_div: Div, sub_div: Div) -> Self {
         let r_add = (state >> 8) as u8;
         let r_sub = state as u8;
@@ -103,7 +99,7 @@ impl Rng {
     }
 
     pub fn state(&self) -> u16 {
-        (self.r_add as u16) << 8 | self.r_sub as u16
+        ((self.r_add as u16) << 8) | self.r_sub as u16
     }
 
     fn next_with_div_offset(&mut self, div_offset: Offset) -> [u8; 2] {
@@ -126,7 +122,7 @@ impl Rng {
 
     pub fn next_u16(&mut self) -> u16 {
         let [r_add, r_sub] = self.next();
-        (r_add as u16) << 8 | r_sub as u16
+        ((r_add as u16) << 8) | r_sub as u16
     }
 
     pub fn adiv(&self) -> u8 {
@@ -224,8 +220,9 @@ mod test {
     #[test]
     fn advances_the_rng() {
         let state = 0x9fe3;
-        let (a_div, s_div) = Div::new_pair(468, 0x78, 0x78);
-        let mut rng = Rng::new(state, a_div, s_div);
+        let adiv = Div::new(468, 0x78);
+        let sdiv = Div::new(16139, 0x78);
+        let mut rng = Rng::new(state, adiv, sdiv);
         let expected: Vec<u16> = vec![
             0x2958, 0xc5bb, 0x740b, 0x3549, 0x0874, 0xee8e, 0xe695, 0xf08b, 0x0d6d, 0x3c3e, 0x7dfd,
             0xd1a9, 0x3742, 0xafca, 0x393e, 0xd6a1, 0x85f1, 0x462e, 0x1a59, 0x0072, 0xf879, 0x036d,

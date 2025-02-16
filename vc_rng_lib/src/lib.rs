@@ -1,4 +1,4 @@
-mod div;
+pub mod div;
 pub mod rng;
 
 use div::Div;
@@ -19,20 +19,22 @@ pub enum Filter {
 
 impl PartialEq<SpecialTrait> for Filter {
     fn eq(&self, other: &SpecialTrait) -> bool {
-        match (self, other) {
-            (Filter::Shiny, SpecialTrait::Shiny) => true,
-            (Filter::MaxDv, SpecialTrait::MaxDv) => true,
-            (Filter::Any, SpecialTrait::Shiny) => true,
-            (Filter::Any, SpecialTrait::MaxDv) => true,
-            _ => false,
-        }
+        matches!(
+            (self, other),
+            (Filter::Shiny, SpecialTrait::Shiny)
+                | (Filter::MaxDv, SpecialTrait::MaxDv)
+                | (Filter::Any, SpecialTrait::Shiny)
+                | (Filter::Any, SpecialTrait::MaxDv)
+        )
     }
 }
 
 #[wasm_bindgen]
 pub struct Options {
-    div: u16,
-    index: usize,
+    adiv: u8,
+    sdiv: u8,
+    adiv_index: usize,
+    sdiv_index: usize,
     state: u16,
     start_advance: usize,
     end_advance: usize,
@@ -42,16 +44,20 @@ pub struct Options {
 #[wasm_bindgen]
 impl Options {
     pub fn new(
-        div: u16,
-        index: usize,
+        adiv: u8,
+        sdiv: u8,
+        adiv_index: usize,
+        sdiv_index: usize,
         state: u16,
         start_advance: usize,
         end_advance: usize,
         filter: Filter,
     ) -> Self {
         Self {
-            div,
-            index,
+            adiv,
+            sdiv,
+            adiv_index,
+            sdiv_index,
             state,
             start_advance,
             end_advance,
@@ -71,7 +77,8 @@ pub struct Starter {
 
 #[wasm_bindgen]
 pub fn generate_starters(opts: Options) -> Vec<Starter> {
-    let (add_div, sub_div) = Div::new_pair(opts.index, (opts.div >> 8) as u8, opts.div as u8);
+    let add_div = Div::new(opts.adiv_index, opts.adiv);
+    let sub_div = Div::new(opts.sdiv_index, opts.sdiv);
     let mut rng = Rng::new(opts.state, add_div, sub_div);
     let mut starters = Vec::new();
     for advance in opts.start_advance..=opts.end_advance {
