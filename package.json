@@ -1,0 +1,20 @@
+{
+  "name": "vc_rng_lib",
+  "type": "module",
+  "collaborators": [
+    "zaksabeast <19464008+zaksabeast@users.noreply.github.com>"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "vc_rng_lib_bg.wasm",
+    "vc_rng_lib.js",
+    "vc_rng_lib_bg.js",
+    "vc_rng_lib.d.ts"
+  ],
+  "main": "vc_rng_lib.js",
+  "types": "vc_rng_lib.d.ts",
+  "sideEffects": [
+    "./vc_rng_lib.js",
+    "./snippets/*"
+  ]
+}
