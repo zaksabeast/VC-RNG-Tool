@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::num::ParseIntError;
-use vc_rng_lib::{div::Div, generate_starters, rng::Rng, Filter, Options};
+use vc_rng_lib::{generate_rng_states, generate_starters, Filter, PokeOptions, RandOptions};
 
 fn parse_u16_hex(input: &str) -> Result<u16, ParseIntError> {
     u16::from_str_radix(input, 16)
@@ -41,10 +41,7 @@ struct Cli {
 
 #[derive(Parser)]
 enum Command {
-    Rng {
-        #[arg(short, long)]
-        log_count: usize,
-    },
+    Rng,
     Starter,
 }
 
@@ -53,26 +50,25 @@ fn main() {
     let end_advance = opts.start_advance + opts.advance_count;
 
     match opts.command {
-        Command::Rng { log_count } => {
-            let adiv = Div::new(opts.adiv_index, opts.adiv);
-            let sdiv = Div::new(opts.sdiv_index, opts.sdiv);
-            let mut rng = Rng::new(opts.state, adiv, sdiv);
-            let log_start = end_advance.saturating_sub(log_count);
-            for advance in (opts.start_advance + 1)..=end_advance {
-                let rand = rng.next_u16();
-                if advance >= log_start {
-                    println!(
-                        "adv {}, div {:02x}{:02x}, rand {:04x}",
-                        advance,
-                        rng.adiv(),
-                        rng.sdiv(),
-                        rand
-                    );
-                }
+        Command::Rng => {
+            let rng_states = generate_rng_states(RandOptions::new(
+                opts.adiv,
+                opts.sdiv,
+                opts.adiv_index,
+                opts.sdiv_index,
+                opts.state,
+                opts.start_advance,
+                end_advance,
+            ));
+            for rng_state in rng_states {
+                println!(
+                    "adv {}, div {:02x}{:02x}, rand {:04x}",
+                    rng_state.advance, rng_state.add_div, rng_state.sub_div, rng_state.rand
+                );
             }
         }
         Command::Starter => {
-            let results = generate_starters(Options::new(
+            let results = generate_starters(PokeOptions::new(
                 opts.adiv,
                 opts.sdiv,
                 opts.adiv_index,

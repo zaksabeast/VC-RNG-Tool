@@ -30,7 +30,7 @@ impl PartialEq<SpecialTrait> for Filter {
 }
 
 #[wasm_bindgen]
-pub struct Options {
+pub struct PokeOptions {
     adiv: u8,
     sdiv: u8,
     adiv_index: usize,
@@ -42,7 +42,7 @@ pub struct Options {
 }
 
 #[wasm_bindgen]
-impl Options {
+impl PokeOptions {
     pub fn new(
         adiv: u8,
         sdiv: u8,
@@ -76,7 +76,7 @@ pub struct Starter {
 }
 
 #[wasm_bindgen]
-pub fn generate_starters(opts: Options) -> Vec<Starter> {
+pub fn generate_starters(opts: PokeOptions) -> Vec<Starter> {
     let add_div = Div::new(opts.adiv_index, opts.adiv);
     let sub_div = Div::new(opts.sdiv_index, opts.sdiv);
     let mut rng = Rng::new(opts.state, add_div, sub_div);
@@ -94,4 +94,64 @@ pub fn generate_starters(opts: Options) -> Vec<Starter> {
         rng.next();
     }
     starters
+}
+
+#[wasm_bindgen]
+pub struct RandOptions {
+    adiv: u8,
+    sdiv: u8,
+    adiv_index: usize,
+    sdiv_index: usize,
+    state: u16,
+    start_advance: usize,
+    end_advance: usize,
+}
+
+#[wasm_bindgen]
+impl RandOptions {
+    pub fn new(
+        adiv: u8,
+        sdiv: u8,
+        adiv_index: usize,
+        sdiv_index: usize,
+        state: u16,
+        start_advance: usize,
+        end_advance: usize,
+    ) -> Self {
+        Self {
+            adiv,
+            sdiv,
+            adiv_index,
+            sdiv_index,
+            state,
+            start_advance,
+            end_advance,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub struct RngState {
+    pub rand: u16,
+    pub advance: usize,
+    pub add_div: u8,
+    pub sub_div: u8,
+}
+
+#[wasm_bindgen]
+pub fn generate_rng_states(opts: RandOptions) -> Vec<RngState> {
+    let adiv = Div::new(opts.adiv_index, opts.adiv);
+    let sdiv = Div::new(opts.sdiv_index, opts.sdiv);
+    let mut rng = Rng::new(opts.state, adiv, sdiv);
+    ((opts.start_advance + 1)..opts.end_advance)
+        .map(|advance| {
+            let rand = rng.next_u16();
+            RngState {
+                rand,
+                advance,
+                add_div: rng.adiv(),
+                sub_div: rng.sdiv(),
+            }
+        })
+        .collect()
 }
