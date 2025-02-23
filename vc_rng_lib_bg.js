@@ -50,13 +50,26 @@ function getArrayJsValueFromWasm0(ptr, len) {
     return result;
 }
 /**
- * @param {Options} opts
+ * @param {PokeOptions} opts
  * @returns {Starter[]}
  */
 export function generate_starters(opts) {
-    _assertClass(opts, Options);
+    _assertClass(opts, PokeOptions);
     var ptr0 = opts.__destroy_into_raw();
     const ret = wasm.generate_starters(ptr0);
+    var v2 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v2;
+}
+
+/**
+ * @param {RandOptions} opts
+ * @returns {RngState[]}
+ */
+export function generate_rng_states(opts) {
+    _assertClass(opts, RandOptions);
+    var ptr0 = opts.__destroy_into_raw();
+    const ret = wasm.generate_rng_states(ptr0);
     var v2 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
     return v2;
@@ -71,30 +84,30 @@ export const Filter = Object.freeze({
     MaxDv: 2, "2": "MaxDv",
 });
 
-const OptionsFinalization = (typeof FinalizationRegistry === 'undefined')
+const PokeOptionsFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_options_free(ptr >>> 0, 1));
+    : new FinalizationRegistry(ptr => wasm.__wbg_pokeoptions_free(ptr >>> 0, 1));
 
-export class Options {
+export class PokeOptions {
 
     static __wrap(ptr) {
         ptr = ptr >>> 0;
-        const obj = Object.create(Options.prototype);
+        const obj = Object.create(PokeOptions.prototype);
         obj.__wbg_ptr = ptr;
-        OptionsFinalization.register(obj, obj.__wbg_ptr, obj);
+        PokeOptionsFinalization.register(obj, obj.__wbg_ptr, obj);
         return obj;
     }
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-        OptionsFinalization.unregister(this);
+        PokeOptionsFinalization.unregister(this);
         return ptr;
     }
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_options_free(ptr, 0);
+        wasm.__wbg_pokeoptions_free(ptr, 0);
     }
     /**
      * @param {number} adiv
@@ -105,11 +118,131 @@ export class Options {
      * @param {number} start_advance
      * @param {number} end_advance
      * @param {Filter} filter
-     * @returns {Options}
+     * @returns {PokeOptions}
      */
     static new(adiv, sdiv, adiv_index, sdiv_index, state, start_advance, end_advance, filter) {
-        const ret = wasm.options_new(adiv, sdiv, adiv_index, sdiv_index, state, start_advance, end_advance, filter);
-        return Options.__wrap(ret);
+        const ret = wasm.pokeoptions_new(adiv, sdiv, adiv_index, sdiv_index, state, start_advance, end_advance, filter);
+        return PokeOptions.__wrap(ret);
+    }
+}
+
+const RandOptionsFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_randoptions_free(ptr >>> 0, 1));
+
+export class RandOptions {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(RandOptions.prototype);
+        obj.__wbg_ptr = ptr;
+        RandOptionsFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        RandOptionsFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_randoptions_free(ptr, 0);
+    }
+    /**
+     * @param {number} adiv
+     * @param {number} sdiv
+     * @param {number} adiv_index
+     * @param {number} sdiv_index
+     * @param {number} state
+     * @param {number} start_advance
+     * @param {number} end_advance
+     * @returns {RandOptions}
+     */
+    static new(adiv, sdiv, adiv_index, sdiv_index, state, start_advance, end_advance) {
+        const ret = wasm.randoptions_new(adiv, sdiv, adiv_index, sdiv_index, state, start_advance, end_advance);
+        return RandOptions.__wrap(ret);
+    }
+}
+
+const RngStateFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_rngstate_free(ptr >>> 0, 1));
+
+export class RngState {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(RngState.prototype);
+        obj.__wbg_ptr = ptr;
+        RngStateFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        RngStateFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_rngstate_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    get rand() {
+        const ret = wasm.__wbg_get_rngstate_rand(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set rand(arg0) {
+        wasm.__wbg_set_rngstate_rand(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get advance() {
+        const ret = wasm.__wbg_get_rngstate_advance(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set advance(arg0) {
+        wasm.__wbg_set_rngstate_advance(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get add_div() {
+        const ret = wasm.__wbg_get_rngstate_add_div(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set add_div(arg0) {
+        wasm.__wbg_set_rngstate_add_div(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get sub_div() {
+        const ret = wasm.__wbg_get_rngstate_sub_div(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set sub_div(arg0) {
+        wasm.__wbg_set_rngstate_sub_div(this.__wbg_ptr, arg0);
     }
 }
 
@@ -142,27 +275,27 @@ export class Starter {
      * @returns {number}
      */
     get state() {
-        const ret = wasm.__wbg_get_starter_state(this.__wbg_ptr);
+        const ret = wasm.__wbg_get_rngstate_rand(this.__wbg_ptr);
         return ret;
     }
     /**
      * @param {number} arg0
      */
     set state(arg0) {
-        wasm.__wbg_set_starter_state(this.__wbg_ptr, arg0);
+        wasm.__wbg_set_rngstate_rand(this.__wbg_ptr, arg0);
     }
     /**
      * @returns {number}
      */
     get advance() {
-        const ret = wasm.__wbg_get_starter_advance(this.__wbg_ptr);
+        const ret = wasm.__wbg_get_rngstate_advance(this.__wbg_ptr);
         return ret >>> 0;
     }
     /**
      * @param {number} arg0
      */
     set advance(arg0) {
-        wasm.__wbg_set_starter_advance(this.__wbg_ptr, arg0);
+        wasm.__wbg_set_rngstate_advance(this.__wbg_ptr, arg0);
     }
     /**
      * @returns {boolean}
@@ -191,6 +324,11 @@ export class Starter {
         wasm.__wbg_set_starter_max_dv(this.__wbg_ptr, arg0);
     }
 }
+
+export function __wbg_rngstate_new(arg0) {
+    const ret = RngState.__wrap(arg0);
+    return ret;
+};
 
 export function __wbg_starter_new(arg0) {
     const ret = Starter.__wrap(arg0);
