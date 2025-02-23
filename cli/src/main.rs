@@ -2,6 +2,10 @@ use clap::Parser;
 use std::num::ParseIntError;
 use vc_rng_lib::{generate_rng_states, generate_starters, Filter, PokeOptions, RandOptions};
 
+fn parse_u8_hex(input: &str) -> Result<u8, ParseIntError> {
+    u8::from_str_radix(input, 16)
+}
+
 fn parse_u16_hex(input: &str) -> Result<u16, ParseIntError> {
     u16::from_str_radix(input, 16)
 }
@@ -23,9 +27,9 @@ fn limit_index_range(input: &str) -> Result<usize, String> {
 struct Cli {
     #[command(subcommand)]
     command: Command,
-    #[arg(long, value_parser = parse_u16_hex)]
+    #[arg(long, value_parser = parse_u8_hex)]
     adiv: u8,
-    #[arg(long, value_parser = parse_u16_hex)]
+    #[arg(long, value_parser = parse_u8_hex)]
     sdiv: u8,
     #[arg(short, long, value_parser = limit_index_range)]
     adiv_index: usize,
