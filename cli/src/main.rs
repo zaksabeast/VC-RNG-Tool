@@ -23,15 +23,15 @@ fn limit_index_range(input: &str) -> Result<usize, String> {
 struct Cli {
     #[command(subcommand)]
     command: Command,
-    #[arg(short, long, value_parser = parse_u16_hex)]
+    #[arg(long, value_parser = parse_u16_hex)]
     adiv: u8,
-    #[arg(short, long, value_parser = parse_u16_hex)]
+    #[arg(long, value_parser = parse_u16_hex)]
     sdiv: u8,
     #[arg(short, long, value_parser = limit_index_range)]
     adiv_index: usize,
     #[arg(short, long, value_parser = limit_index_range)]
     sdiv_index: usize,
-    #[arg(short, long, value_parser = parse_u16_hex)]
+    #[arg(long, value_parser = parse_u16_hex)]
     state: u16,
     #[arg(short = 'S', long)]
     start_advance: usize,
