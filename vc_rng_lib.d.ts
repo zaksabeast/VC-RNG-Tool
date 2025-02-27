@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
-export function generate_starters(opts: PokeOptions): Starter[];
+export function generate_starters(opts: PokeOptions): Spread[];
+export function generate_celebi(opts: PokeOptions): Spread[];
 export function generate_rng_states(opts: RandOptions): RngState[];
 export enum Filter {
   Any = 0,
@@ -25,7 +26,7 @@ export class RngState {
   add_div: number;
   sub_div: number;
 }
-export class Starter {
+export class Spread {
   private constructor();
   free(): void;
   state: number;

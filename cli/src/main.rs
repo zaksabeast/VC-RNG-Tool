@@ -1,6 +1,12 @@
 use clap::Parser;
 use std::num::ParseIntError;
-use vc_rng_lib::{generate_rng_states, generate_starters, Filter, PokeOptions, RandOptions};
+use vc_rng_lib::{
+    generate_celebi, generate_rng_states, generate_starters, Filter, PokeOptions, RandOptions,
+};
+
+fn parse_u8_hex(input: &str) -> Result<u8, ParseIntError> {
+    u8::from_str_radix(input, 16)
+}
 
 fn parse_u16_hex(input: &str) -> Result<u16, ParseIntError> {
     u16::from_str_radix(input, 16)
@@ -23,15 +29,15 @@ fn limit_index_range(input: &str) -> Result<usize, String> {
 struct Cli {
     #[command(subcommand)]
     command: Command,
-    #[arg(short, long, value_parser = parse_u16_hex)]
+    #[arg(long, value_parser = parse_u8_hex)]
     adiv: u8,
-    #[arg(short, long, value_parser = parse_u16_hex)]
+    #[arg(long, value_parser = parse_u8_hex)]
     sdiv: u8,
     #[arg(short, long, value_parser = limit_index_range)]
     adiv_index: usize,
     #[arg(short, long, value_parser = limit_index_range)]
     sdiv_index: usize,
-    #[arg(short, long, value_parser = parse_u16_hex)]
+    #[arg(long, value_parser = parse_u16_hex)]
     state: u16,
     #[arg(short = 'S', long)]
     start_advance: usize,
@@ -43,6 +49,7 @@ struct Cli {
 enum Command {
     Rng,
     Starter,
+    Celebi,
 }
 
 fn main() {
@@ -78,7 +85,30 @@ fn main() {
                 opts.start_advance + opts.advance_count,
                 Filter::Any,
             ));
-            println!("{:?}", results);
+            for spread in results {
+                println!(
+                    "advance {}, state {:x}, shiny {}, max_dv {}",
+                    spread.advance, spread.state, spread.shiny, spread.max_dv
+                );
+            }
+        }
+        Command::Celebi => {
+            let results = generate_celebi(PokeOptions::new(
+                opts.adiv,
+                opts.sdiv,
+                opts.adiv_index,
+                opts.sdiv_index,
+                opts.state,
+                opts.start_advance,
+                opts.start_advance + opts.advance_count,
+                Filter::Any,
+            ));
+            for spread in results {
+                println!(
+                    "advance {}, state {:x}, shiny {}, max_dv {}",
+                    spread.advance, spread.state, spread.shiny, spread.max_dv
+                );
+            }
         }
     };
 }

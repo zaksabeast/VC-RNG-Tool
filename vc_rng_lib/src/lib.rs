@@ -68,7 +68,7 @@ impl PokeOptions {
 
 #[derive(Debug, Clone, PartialEq)]
 #[wasm_bindgen]
-pub struct Starter {
+pub struct Spread {
     pub state: u16,
     pub advance: usize,
     pub shiny: bool,
@@ -76,15 +76,15 @@ pub struct Starter {
 }
 
 #[wasm_bindgen]
-pub fn generate_starters(opts: PokeOptions) -> Vec<Starter> {
+pub fn generate_starters(opts: PokeOptions) -> Vec<Spread> {
     let add_div = Div::new(opts.adiv_index, opts.adiv);
     let sub_div = Div::new(opts.sdiv_index, opts.sdiv);
     let mut rng = Rng::new(opts.state, add_div, sub_div);
-    let mut starters = Vec::new();
+    let mut spreads = Vec::new();
     for advance in opts.start_advance..=opts.end_advance {
-        let special_trait = rng.possible_special_trait();
+        let special_trait = rng.has_potential_special_starter();
         if opts.filter == special_trait {
-            starters.push(Starter {
+            spreads.push(Spread {
                 state: rng.state(),
                 advance,
                 shiny: special_trait == SpecialTrait::Shiny,
@@ -93,7 +93,28 @@ pub fn generate_starters(opts: PokeOptions) -> Vec<Starter> {
         }
         rng.next();
     }
-    starters
+    spreads
+}
+
+#[wasm_bindgen]
+pub fn generate_celebi(opts: PokeOptions) -> Vec<Spread> {
+    let add_div = Div::new(opts.adiv_index, opts.adiv);
+    let sub_div = Div::new(opts.sdiv_index, opts.sdiv);
+    let mut rng = Rng::new(opts.state, add_div, sub_div);
+    let mut spreads = Vec::new();
+    for advance in opts.start_advance..=opts.end_advance {
+        let special_trait = rng.has_potential_special_celebi();
+        if opts.filter == special_trait {
+            spreads.push(Spread {
+                state: rng.state(),
+                advance,
+                shiny: special_trait == SpecialTrait::Shiny,
+                max_dv: special_trait == SpecialTrait::MaxDv,
+            });
+        }
+        rng.next();
+    }
+    spreads
 }
 
 #[wasm_bindgen]

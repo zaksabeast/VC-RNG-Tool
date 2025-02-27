@@ -51,12 +51,25 @@ function getArrayJsValueFromWasm0(ptr, len) {
 }
 /**
  * @param {PokeOptions} opts
- * @returns {Starter[]}
+ * @returns {Spread[]}
  */
 export function generate_starters(opts) {
     _assertClass(opts, PokeOptions);
     var ptr0 = opts.__destroy_into_raw();
     const ret = wasm.generate_starters(ptr0);
+    var v2 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v2;
+}
+
+/**
+ * @param {PokeOptions} opts
+ * @returns {Spread[]}
+ */
+export function generate_celebi(opts) {
+    _assertClass(opts, PokeOptions);
+    var ptr0 = opts.__destroy_into_raw();
+    const ret = wasm.generate_celebi(ptr0);
     var v2 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
     return v2;
@@ -246,30 +259,30 @@ export class RngState {
     }
 }
 
-const StarterFinalization = (typeof FinalizationRegistry === 'undefined')
+const SpreadFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_starter_free(ptr >>> 0, 1));
+    : new FinalizationRegistry(ptr => wasm.__wbg_spread_free(ptr >>> 0, 1));
 
-export class Starter {
+export class Spread {
 
     static __wrap(ptr) {
         ptr = ptr >>> 0;
-        const obj = Object.create(Starter.prototype);
+        const obj = Object.create(Spread.prototype);
         obj.__wbg_ptr = ptr;
-        StarterFinalization.register(obj, obj.__wbg_ptr, obj);
+        SpreadFinalization.register(obj, obj.__wbg_ptr, obj);
         return obj;
     }
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-        StarterFinalization.unregister(this);
+        SpreadFinalization.unregister(this);
         return ptr;
     }
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_starter_free(ptr, 0);
+        wasm.__wbg_spread_free(ptr, 0);
     }
     /**
      * @returns {number}
@@ -301,27 +314,27 @@ export class Starter {
      * @returns {boolean}
      */
     get shiny() {
-        const ret = wasm.__wbg_get_starter_shiny(this.__wbg_ptr);
+        const ret = wasm.__wbg_get_spread_shiny(this.__wbg_ptr);
         return ret !== 0;
     }
     /**
      * @param {boolean} arg0
      */
     set shiny(arg0) {
-        wasm.__wbg_set_starter_shiny(this.__wbg_ptr, arg0);
+        wasm.__wbg_set_spread_shiny(this.__wbg_ptr, arg0);
     }
     /**
      * @returns {boolean}
      */
     get max_dv() {
-        const ret = wasm.__wbg_get_starter_max_dv(this.__wbg_ptr);
+        const ret = wasm.__wbg_get_spread_max_dv(this.__wbg_ptr);
         return ret !== 0;
     }
     /**
      * @param {boolean} arg0
      */
     set max_dv(arg0) {
-        wasm.__wbg_set_starter_max_dv(this.__wbg_ptr, arg0);
+        wasm.__wbg_set_spread_max_dv(this.__wbg_ptr, arg0);
     }
 }
 
@@ -330,8 +343,8 @@ export function __wbg_rngstate_new(arg0) {
     return ret;
 };
 
-export function __wbg_starter_new(arg0) {
-    const ret = Starter.__wrap(arg0);
+export function __wbg_spread_new(arg0) {
+    const ret = Spread.__wrap(arg0);
     return ret;
 };
 

@@ -1,14 +1,33 @@
 use super::div::Div;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SpecialTrait {
+    None,
+    Shiny,
+    MaxDv,
+}
+
+pub fn possible_special_trait(pokes: &[Poke]) -> SpecialTrait {
+    pokes
+        .iter()
+        .filter_map(|poke| match poke.special_trait() {
+            SpecialTrait::None => None,
+            special_trait => Some(special_trait),
+        })
+        .next()
+        .unwrap_or(SpecialTrait::None)
+}
+
 #[derive(Debug, Clone, Copy)]
 enum Offset {
     Plus(u8),
+    Minus(u8),
 }
 
 impl Offset {
     fn from_i8(value: i8) -> Self {
         if value < 0 {
-            Offset::Plus(value.unsigned_abs())
+            Offset::Minus(value.unsigned_abs())
         } else {
             Offset::Plus(value as u8)
         }
@@ -28,7 +47,6 @@ pub struct Poke {
     pub def: u8,
     pub spe: u8,
     pub spc: u8,
-    pub is_shiny: bool,
 }
 
 impl Poke {
@@ -38,15 +56,6 @@ impl Poke {
         let spe = spespc >> 4;
         let spc = spespc & 0xf;
         let hp = ((atk & 1) * 8) + ((def & 1) * 4) + ((spe & 1) * 2) + (spc & 1);
-        let is_shiny = spespc == 0xAA
-            && (atkdef == 0x2A
-                || atkdef == 0x3A
-                || atkdef == 0x6A
-                || atkdef == 0x7A
-                || atkdef == 0xAA
-                || atkdef == 0xBA
-                || atkdef == 0xEA
-                || atkdef == 0xFA);
 
         Self {
             hp,
@@ -54,8 +63,30 @@ impl Poke {
             def,
             spe,
             spc,
-            is_shiny,
         }
+    }
+
+    pub fn max_dvs(&self) -> bool {
+        self.hp == 15 && self.atk == 15 && self.def == 15 && self.spe == 15 && self.spc == 15
+    }
+
+    pub fn is_shiny(&self) -> bool {
+        self.spe == 10
+            && self.spc == 10
+            && self.def == 10
+            && [0x2, 0x3, 0x6, 0x7, 0xA, 0xB, 0xE, 0xF].contains(&self.atk)
+    }
+
+    pub fn special_trait(&self) -> SpecialTrait {
+        if self.is_shiny() {
+            return SpecialTrait::Shiny;
+        }
+
+        if self.max_dvs() {
+            return SpecialTrait::MaxDv;
+        }
+
+        SpecialTrait::None
     }
 }
 
@@ -68,14 +99,8 @@ fn advance_rng(r_add: u8, r_sub: u8, a_div: u8, s_div: u8) -> [u8; 2] {
 fn apply_offset(value: u8, offset: Offset) -> u8 {
     match offset {
         Offset::Plus(offset) => value.wrapping_add(offset),
+        Offset::Minus(offset) => value.wrapping_sub(offset),
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SpecialTrait {
-    None,
-    Shiny,
-    MaxDv,
 }
 
 #[derive(Debug, Clone)]
@@ -116,6 +141,25 @@ impl Rng {
         [self.r_add, self.r_sub]
     }
 
+    fn next_with_div_inc(&mut self, div_offset: Offset) -> [u8; 2] {
+        self.add_div.next();
+        self.sub_div.next();
+
+        self.add_div
+            .set_value(apply_offset(self.add_div.value(), div_offset));
+        self.sub_div
+            .set_value(apply_offset(self.sub_div.value(), div_offset));
+
+        [self.r_add, self.r_sub] = advance_rng(
+            self.r_add,
+            self.r_sub,
+            self.add_div.value(),
+            self.sub_div.value(),
+        );
+
+        [self.r_add, self.r_sub]
+    }
+
     pub fn next(&mut self) -> [u8; 2] {
         self.next_with_div_offset(Offset::default())
     }
@@ -133,7 +177,7 @@ impl Rng {
         self.sub_div.value()
     }
 
-    fn poke_rands(
+    fn generate_starter_rands(
         &self,
         a_div_1_offset: Offset,
         s_div_1_offset: Offset,
@@ -170,14 +214,14 @@ impl Rng {
         [poke_rand_1, poke_rand_2]
     }
 
-    fn potential_pokes(&self) -> Vec<Poke> {
+    fn potential_starters(&self) -> Vec<Poke> {
         let mut result = Vec::new();
 
         for a_div_1_offset in -1..=1 {
             for s_div_1_offset in -1..=1 {
                 for a_div_2_offset in -1..=1 {
                     for s_div_2_offset in -1..=1 {
-                        let [[_, atkdef], [_, spespc]] = self.poke_rands(
+                        let [[_, atkdef], [_, spespc]] = self.generate_starter_rands(
                             Offset::from_i8(a_div_1_offset),
                             Offset::from_i8(s_div_1_offset),
                             Offset::from_i8(a_div_2_offset),
@@ -194,22 +238,66 @@ impl Rng {
         result
     }
 
-    pub fn possible_special_trait(&self) -> SpecialTrait {
-        let pokes = self.potential_pokes();
-        let is_shiny = pokes.iter().any(|poke| poke.is_shiny);
-        if is_shiny {
-            return SpecialTrait::Shiny;
+    pub fn has_potential_special_starter(&self) -> SpecialTrait {
+        let pokes = self.potential_starters();
+        possible_special_trait(&pokes)
+    }
+
+    fn generate_celebi_rands(&self, extra_consumed_rands: u8, div_off: u8) -> [[u8; 2]; 2] {
+        let mut poke_rng = self.clone();
+
+        for _ in 0..595 {
+            poke_rng.next();
         }
 
-        let is_max_dvs = pokes.iter().any(|poke| {
-            poke.hp == 15 && poke.atk == 15 && poke.def == 15 && poke.spe == 15 && poke.spc == 15
-        });
+        let adiv_index = poke_rng.add_div.index();
+        let sdiv_index = poke_rng.sub_div.index();
 
-        if is_max_dvs {
-            return SpecialTrait::MaxDv;
+        poke_rng.next_with_div_offset(Offset::Minus(0xc));
+
+        for _ in 0..extra_consumed_rands {
+            poke_rng.next();
         }
 
-        SpecialTrait::None
+        poke_rng.next_with_div_inc(Offset::Plus(div_off));
+        poke_rng.add_div.set_index(adiv_index);
+        poke_rng.add_div.decrement_index(2);
+        poke_rng.sub_div.set_index(sdiv_index);
+        poke_rng.sub_div.decrement_index(2);
+
+        for _ in 0..12 {
+            poke_rng.next();
+        }
+
+        poke_rng.next_with_div_inc(Offset::Plus(0x6f));
+
+        poke_rng.add_div.set_index(0);
+        poke_rng.sub_div.set_index(3);
+
+        let poke_rand_1 = poke_rng.next_with_div_inc(Offset::Plus(0xc));
+        let poke_rand_2 = poke_rng.next_with_div_inc(Offset::Plus(0xe4));
+
+        [poke_rand_1, poke_rand_2]
+    }
+
+    pub fn potential_celebis(&self) -> Vec<Poke> {
+        let mut result = vec![];
+
+        for extra_consumed_rands in [2, 3] {
+            for div_off in [0xba, 0xbb] {
+                let [[_, atkdef], [_, spespc]] =
+                    self.generate_celebi_rands(extra_consumed_rands, div_off);
+                let poke = Poke::new(atkdef, spespc);
+                result.push(poke);
+            }
+        }
+
+        result
+    }
+
+    pub fn has_potential_special_celebi(&self) -> SpecialTrait {
+        let pokes = self.potential_celebis();
+        possible_special_trait(&pokes)
     }
 }
 
