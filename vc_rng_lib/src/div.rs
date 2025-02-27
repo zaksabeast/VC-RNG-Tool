@@ -40,4 +40,28 @@ impl Div {
     pub fn value(&self) -> u8 {
         self.value
     }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    pub fn set_value(&mut self, value: u8) {
+        self.value = value;
+    }
+
+    pub fn set_index(&mut self, index: usize) {
+        self.index = index;
+    }
+
+    pub fn decrement_index(&mut self, value: usize) {
+        self.index = self.index.wrapping_sub(value) % DIV_CYCLE_LENGTH;
+    }
+
+    pub fn increment_index(&mut self, value: usize) {
+        self.index = (self.index.wrapping_add(value)) % DIV_CYCLE_LENGTH;
+    }
+
+    pub fn increment_value(&mut self, value: u8) {
+        self.value = self.value.wrapping_add(value);
+    }
 }

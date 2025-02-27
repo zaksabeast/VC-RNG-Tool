@@ -1,6 +1,8 @@
 use clap::Parser;
 use std::num::ParseIntError;
-use vc_rng_lib::{generate_rng_states, generate_starters, Filter, PokeOptions, RandOptions};
+use vc_rng_lib::{
+    generate_celebi, generate_rng_states, generate_starters, Filter, PokeOptions, RandOptions,
+};
 
 fn parse_u8_hex(input: &str) -> Result<u8, ParseIntError> {
     u8::from_str_radix(input, 16)
@@ -47,6 +49,7 @@ struct Cli {
 enum Command {
     Rng,
     Starter,
+    Celebi,
 }
 
 fn main() {
@@ -82,7 +85,30 @@ fn main() {
                 opts.start_advance + opts.advance_count,
                 Filter::Any,
             ));
-            println!("{:?}", results);
+            for spread in results {
+                println!(
+                    "advance {}, state {:x}, shiny {}, max_dv {}",
+                    spread.advance, spread.state, spread.shiny, spread.max_dv
+                );
+            }
+        }
+        Command::Celebi => {
+            let results = generate_celebi(PokeOptions::new(
+                opts.adiv,
+                opts.sdiv,
+                opts.adiv_index,
+                opts.sdiv_index,
+                opts.state,
+                opts.start_advance,
+                opts.start_advance + opts.advance_count,
+                Filter::Any,
+            ));
+            for spread in results {
+                println!(
+                    "advance {}, state {:x}, shiny {}, max_dv {}",
+                    spread.advance, spread.state, spread.shiny, spread.max_dv
+                );
+            }
         }
     };
 }
